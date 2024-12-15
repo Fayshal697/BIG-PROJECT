@@ -1,0 +1,18 @@
+{
+    "dependencies": {
+      "@cloudant/cloudant": "^4.5.1",
+      "dotenv": "^16.4.7",
+      "express": "^4.21.2"
+    },
+    "name": "fayshalathilla",
+    "version": "1.0.0",
+    "main": "index.js",
+    "devDependencies": {},
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": ""
+  }
