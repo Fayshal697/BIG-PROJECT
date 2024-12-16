@@ -10,12 +10,13 @@ const Cloudant = require('@cloudant/cloudant');
 // Middleware
 const app = express();
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Cloudant connection
 const cloudant = Cloudant({ 
     url: process.env.CLOUDANT_URL, 
-    plugins: { iamauth: { iamApiKey: process.env.CLOUDANT_APIKEY } }
+    plugins: { iamauth: { iamApiKey: process.env.CLOUDANT_API_KEY } }
 });
 
 // Database Initialization
@@ -53,7 +54,10 @@ app.post('/add', async (req, res) => {
 app.get('/list', async (req, res) => {
   try {
     const result = await db.list({ include_docs: true });
-    const todos = result.rows.map(row => row.doc.item);
+    const todos = result.rows.map(row => ({
+      id: row.doc._id,       // Tambahkan ID dokumen
+      item: row.doc.item
+    }));
     res.json(todos);
   } catch (err) {
     console.error('Error fetching tasks:', err);
@@ -61,6 +65,44 @@ app.get('/list', async (req, res) => {
   }
 });
 
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html')); // Mengirimkan file HTML sebagai halaman utama
+});
+
+// Update a task
+app.put('/update/:id', async (req, res) => {
+  const { id } = req.params;
+  const { newItem } = req.body;
+
+  try {
+    // Cari dan update task berdasarkan ID
+    const result = await db.get(id);
+    result.item = newItem;
+
+    await db.insert(result); // Menyimpan perubahan ke Cloudant
+    res.status(200).send('Task updated successfully');
+  } catch (err) {
+    console.error('Error updating task:', err);
+    res.status(500).send('Failed to update task');
+  }
+});
+
+// Delete a task
+app.delete('/delete/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Ambil rev (revision) yang dibutuhkan untuk menghapus
+    const doc = await db.get(id);
+    await db.destroy(doc._id, doc._rev);
+
+    res.status(200).send('Task deleted successfully');
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    res.status(500).send('Failed to delete task');
+  }
+});
 
 // Start the server
 const PORT = process.env.PORT || 3000;
